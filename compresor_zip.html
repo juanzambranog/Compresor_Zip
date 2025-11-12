@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compresor ZIP Limpio para Mac</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div class="p-8">
+        <div class="max-w-4xl mx-auto">
+            <div class="bg-white rounded-2xl shadow-xl p-8">
+                <div class="flex items-center gap-3 mb-6">
+                    <svg class="w-10 h-10 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                    </svg>
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-800">Compresor ZIP Limpio</h1>
+                        <p class="text-gray-600">Sin metadatos de macOS</p>
+                    </div>
+                </div>
+
+                <div id="dropZone" class="border-4 border-dashed border-gray-300 bg-gray-50 rounded-xl p-12 text-center transition-all">
+                    <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                    </svg>
+                    <p class="text-xl font-semibold text-gray-700 mb-2">
+                        Arrastra archivos o carpetas aquí
+                    </p>
+                    <p class="text-gray-500 mb-4">o</p>
+                    <input type="file" id="fileInput" multiple webkitdirectory class="hidden">
+                    <label for="fileInput" class="inline-block px-6 py-3 bg-indigo-600 text-white rounded-lg cursor-pointer hover:bg-indigo-700 transition-colors">
+                        Seleccionar archivos
+                    </label>
+                    <p class="text-sm text-gray-500 mt-4">
+                        Se excluirán automáticamente: .DS_Store, __MACOSX, y otros metadatos
+                    </p>
+                </div>
+
+                <div id="filesList" class="mt-6 hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <h3 id="fileCount" class="text-lg font-semibold text-gray-800"></h3>
+                            <p id="totalSize" class="text-sm text-gray-600"></p>
+                        </div>
+                        <button id="clearBtn" class="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                            Limpiar
+                        </button>
+                    </div>
+
+                    <div id="filesContainer" class="max-h-60 overflow-y-auto bg-gray-50 rounded-lg p-4 mb-4"></div>
+
+                    <button id="compressBtn" class="w-full py-4 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                        </svg>
+                        Comprimir a ZIP
+                    </button>
+                </div>
+
+                <div id="status" class="mt-4 hidden"></div>
+
+                <div class="mt-8 p-4 bg-blue-50 rounded-lg">
+                    <h4 class="font-semibold text-blue-900 mb-2">✨ Archivos excluidos automáticamente:</h4>
+                    <ul class="text-sm text-blue-800 space-y-1">
+                        <li>• .DS_Store (metadatos de Finder)</li>
+                        <li>• __MACOSX (recursos de macOS)</li>
+                        <li>• ._ archivos (AppleDouble)</li>
+                        <li>• Thumbs.db y desktop.ini (Windows)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedFiles = [];
+
+        const shouldExcludeFile = (path) => {
+            const excludePatterns = [
+                /\/__MACOSX\//,
+                /\/\.DS_Store$/,
+                /\/\._(.*)/,
+                /\/\.AppleDouble\//,
+                /\/\.LSOverride$/,
+                /\/Icon\r$/,
+                /\/\._/,
+                /Thumbs\.db$/,
+                /desktop\.ini$/
+            ];
+            return excludePatterns.some(pattern => pattern.test(path));
+        };
+
+        const formatFileSize = (bytes) => {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        };
+
+        const updateUI = () => {
+            const filesList = document.getElementById('filesList');
+            const fileCount = document.getElementById('fileCount');
+            const totalSize = document.getElementById('totalSize');
+            const filesContainer = document.getElementById('filesContainer');
+
+            if (selectedFiles.length === 0) {
+                filesList.classList.add('hidden');
+                return;
+            }
+
+            filesList.classList.remove('hidden');
+            
+            const total = selectedFiles.reduce((sum, item) => sum + item.file.size, 0);
+            fileCount.textContent = `${selectedFiles.length} archivo${selectedFiles.length !== 1 ? 's' : ''} seleccionado${selectedFiles.length !== 1 ? 's' : ''}`;
+            totalSize.textContent = `Tamaño total: ${formatFileSize(total)}`;
+
+            filesContainer.innerHTML = selectedFiles.slice(0, 20).map(item => `
+                <div class="flex justify-between items-center py-2 border-b border-gray-200 last:border-0">
+                    <span class="text-sm text-gray-700 truncate flex-1">${item.path}</span>
+                    <span class="text-xs text-gray-500 ml-4">${formatFileSize(item.file.size)}</span>
+                </div>
+            `).join('');
+
+            if (selectedFiles.length > 20) {
+                filesContainer.innerHTML += `
+                    <p class="text-sm text-gray-500 text-center mt-2">
+                        ... y ${selectedFiles.length - 20} archivo${selectedFiles.length - 20 !== 1 ? 's' : ''} más
+                    </p>
+                `;
+            }
+        };
+
+        const processFileEntry = async (entry, path = '') => {
+            return new Promise((resolve) => {
+                if (entry.isFile) {
+                    entry.file((file) => {
+                        const fullPath = path + file.name;
+                        if (!shouldExcludeFile(fullPath)) {
+                            resolve([{ file, path: fullPath }]);
+                        } else {
+                            resolve([]);
+                        }
+                    });
+                } else if (entry.isDirectory) {
+                    const dirReader = entry.createReader();
+                    dirReader.readEntries(async (entries) => {
+                        const results = await Promise.all(
+                            entries.map(e => processFileEntry(e, path + entry.name + '/'))
+                        );
+                        resolve(results.flat());
+                    });
+                }
+            });
+        };
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const compressBtn = document.getElementById('compressBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const statusDiv = document.getElementById('status');
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-indigo-500', 'bg-indigo-50');
+            dropZone.classList.remove('border-gray-300', 'bg-gray-50');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('border-indigo-500', 'bg-indigo-50');
+            dropZone.classList.add('border-gray-300', 'bg-gray-50');
+        });
+
+        dropZone.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-indigo-500', 'bg-indigo-50');
+            dropZone.classList.add('border-gray-300', 'bg-gray-50');
+            
+            statusDiv.classList.add('hidden');
+            const items = Array.from(e.dataTransfer.items);
+            selectedFiles = [];
+
+            for (const item of items) {
+                const entry = item.webkitGetAsEntry();
+                if (entry) {
+                    const processedFiles = await processFileEntry(entry);
+                    selectedFiles.push(...processedFiles);
+                }
+            }
+
+            updateUI();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            statusDiv.classList.add('hidden');
+            selectedFiles = Array.from(e.target.files)
+                .filter(file => !shouldExcludeFile(file.webkitRelativePath || file.name))
+                .map(file => ({
+                    file,
+                    path: file.webkitRelativePath || file.name
+                }));
+            updateUI();
+        });
+
+        clearBtn.addEventListener('click', () => {
+            selectedFiles = [];
+            fileInput.value = '';
+            statusDiv.classList.add('hidden');
+            updateUI();
+        });
+
+        compressBtn.addEventListener('click', async () => {
+            if (selectedFiles.length === 0) return;
+
+            compressBtn.disabled = true;
+            compressBtn.innerHTML = `
+                <div class="spinner"></div>
+                Comprimiendo...
+            `;
+            statusDiv.classList.add('hidden');
+
+            try {
+                const zip = new JSZip();
+
+                selectedFiles.forEach(({ file, path }) => {
+                    zip.file(path, file);
+                });
+
+                const blob = await zip.generateAsync({ 
+                    type: 'blob',
+                    compression: 'DEFLATE',
+                    compressionOptions: { level: 9 }
+                });
+
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'archivo_limpio.zip';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                statusDiv.className = 'mt-4 p-4 rounded-lg flex items-center gap-3 bg-green-50 text-green-800';
+                statusDiv.innerHTML = `
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span>¡Archivo comprimido exitosamente!</span>
+                `;
+                statusDiv.classList.remove('hidden');
+            } catch (error) {
+                statusDiv.className = 'mt-4 p-4 rounded-lg flex items-center gap-3 bg-red-50 text-red-800';
+                statusDiv.innerHTML = `
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span>Error al comprimir: ${error.message}</span>
+                `;
+                statusDiv.classList.remove('hidden');
+            } finally {
+                compressBtn.disabled = false;
+                compressBtn.innerHTML = `
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                    </svg>
+                    Comprimir a ZIP
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
