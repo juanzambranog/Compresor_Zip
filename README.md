@@ -8,7 +8,7 @@
 
 **Comprime archivos y carpetas sin metadatos innecesarios de macOS**
 
-[Demo](#-demo) • [Características](#-características) • [Instalación](#-instalación) • [Uso](#-uso) • [Contribuir](#-contribuir)
+
 
 </div>
 
