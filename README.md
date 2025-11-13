@@ -17,7 +17,7 @@
 ## 📑 Tabla de Contenidos
 
 - [Introducción](#-introducción)
-- [Problema](#-problema)
+- [Problema](#-el-problema)
 - [Objetivos](#-objetivos)
 - [Características](#-características)
 - [Tecnologías](#-tecnologías)
@@ -248,18 +248,3 @@ desktop.ini         # Configuración de carpetas de Windows
 
 ---
 
-
-## 📊 Estadísticas
-
-![GitHub stars](https://img.shields.io/github/stars/juanzambranog/Compresor_Zip)
-![GitHub forks](https://img.shields.io/github/forks/juanzambranog/Compresor_Zip)
-![GitHub issues](https://img.shields.io/github/issues/juanzambranog/Compresor_Zip)
-![GitHub pull requests](https://img.shields.io/github/issues-pr/juanzambranog/Compresor_Zip)
-
----
-
-<div align="center">
-
-[⬆ Volver arriba](#-compresor-zip-limpio-para-macos)
-
-</div>
