@@ -156,6 +156,11 @@ Proporcionar una herramienta gratuita, de código abierto y fácil de usar para 
    - **Windows**: Doble clic en `compresor_zip.html`
    - **Linux**: `xdg-open compresor_zip.html`
 
+### Opcion 2: Uso del despliegue (Vercel)
+
+- [Zip Compressor](https://compresorzip2.vercel.app/)
+
+
 
 
 
@@ -238,6 +243,13 @@ desktop.ini         # Configuración de carpetas de Windows
 ![alt text](</img/image copy.png>)
 
 ---
+
+## Deploy
+
+Se realizo el despliegue de la aplicacion en Vercel:
+
+https://compresorzip2.vercel.app/
+
 
 
 ## 👤 Autor
