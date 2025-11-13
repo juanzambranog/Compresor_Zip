@@ -230,12 +230,12 @@ desktop.ini         # Configuración de carpetas de Windows
 
 ### Interfaz Principal
 
-![alt text](../compresor_zip/img/image.png)
+![alt text](/img/image.png)
 
 
 ### Vista con Archivos Seleccionados
 
-![alt text](<../compresor_zip/img/image copy.png>)
+![alt text](</img/image copy.png>)
 
 ---
 
