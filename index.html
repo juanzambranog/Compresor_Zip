@@ -93,6 +93,7 @@
 
     <script>
         let selectedFiles = [];
+        let originalFolderName = '';
 
         const shouldExcludeFile = (path) => {
             const excludePatterns = [
@@ -202,6 +203,10 @@
             for (const item of items) {
                 const entry = item.webkitGetAsEntry();
                 if (entry) {
+                    // Capturar el nombre del primer archivo/carpeta
+                    if (!originalFolderName) {
+                        originalFolderName = entry.name;
+                    }
                     const processedFiles = await processFileEntry(entry);
                     selectedFiles.push(...processedFiles);
                 }
@@ -212,7 +217,20 @@
 
         fileInput.addEventListener('change', (e) => {
             statusDiv.classList.add('hidden');
-            selectedFiles = Array.from(e.target.files)
+            const allFiles = Array.from(e.target.files);
+            
+            // Capturar el nombre de la carpeta desde el primer archivo
+            if (allFiles.length > 0 && allFiles[0].webkitRelativePath) {
+                const pathParts = allFiles[0].webkitRelativePath.split('/');
+                originalFolderName = pathParts[0];
+            } else if (allFiles.length === 1) {
+                // Si es un solo archivo, usar su nombre sin extensión
+                originalFolderName = allFiles[0].name.replace(/\.[^/.]+$/, '');
+            } else {
+                originalFolderName = 'archivos';
+            }
+            
+            selectedFiles = allFiles
                 .filter(file => !shouldExcludeFile(file.webkitRelativePath || file.name))
                 .map(file => ({
                     file,
@@ -223,6 +241,7 @@
 
         clearBtn.addEventListener('click', () => {
             selectedFiles = [];
+            originalFolderName = '';
             fileInput.value = '';
             statusDiv.classList.add('hidden');
             updateUI();
@@ -254,7 +273,11 @@
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'archivo_limpio.zip';
+                
+                // Usar el nombre original del archivo/carpeta
+                const zipFileName = originalFolderName ? `${originalFolderName}.zip` : 'archivo_limpio.zip';
+                a.download = zipFileName;
+                
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
